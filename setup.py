@@ -10,6 +10,7 @@ REQUIREMENTS = [
     'django-appconf',
     'django-classy-tags',
     'south>=0.8',
+    'unidecode',
 ]
 
 CLASSIFIERS = [

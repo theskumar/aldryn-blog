@@ -14,10 +14,30 @@ from cms.models.pluginmodel import CMSPlugin
 from djangocms_text_ckeditor.fields import HTMLField
 from filer.fields.image import FilerImageField
 from taggit.managers import TaggableManager
-from taggit.models import TaggedItem, Tag
+from taggit.models import GenericTaggedItemBase, Tag
 
 from .conf import settings
 from .fields import UsersWithPermsManyToManyField
+
+from django.template.defaultfilters import slugify as default_slugify
+from unidecode import unidecode
+
+
+class UniTag(Tag):
+    """Proxy model for taggit.Tag with slug unicode convert"""
+
+    class Meta:
+        proxy = True
+
+    def slugify(self, tag, i=None):
+        slug = default_slugify(unidecode(tag))
+        if i is not None:
+            slug += "_%d" % i
+        return slug
+
+
+class TaggedUnicodeItem(GenericTaggedItemBase):
+    tag = models.ForeignKey('UniTag', related_name="%(app_label)s_%(class)s_items")
 
 
 class RelatedManager(models.Manager):
@@ -40,17 +60,17 @@ class RelatedManager(models.Manager):
         entries = self.filter_by_language(language).distinct()
         if not entries:
             return []
-        kwargs = TaggedItem.bulk_lookup_kwargs(entries)
+        kwargs = TaggedUnicodeItem.bulk_lookup_kwargs(entries)
 
         # aggregate and sort
-        counted_tags = dict(TaggedItem.objects
+        counted_tags = dict(TaggedUnicodeItem.objects
                                       .filter(**kwargs)
                                       .values('tag')
                                       .annotate(count=models.Count('tag'))
                                       .values_list('tag', 'count'))
 
         # and finally get the results
-        tags = Tag.objects.filter(pk__in=counted_tags.keys())
+        tags = UniTag.objects.filter(pk__in=counted_tags.keys())
         for tag in tags:
             tag.count = counted_tags[tag.pk]
         return sorted(tags, key=lambda x: -x.count)
@@ -97,7 +117,7 @@ class Post(models.Model):
 
     objects = RelatedManager()
     published = PublishedManager()
-    tags = TaggableManager(blank=True)
+    tags = TaggableManager(blank=True, through=TaggedUnicodeItem)
 
     def __unicode__(self):
         return self.title
