@@ -19,6 +19,7 @@ class PostAdmin(PlaceholderAdmin):
     date_hierarchy = 'publication_start'
     raw_id_fields = ['author']
     form = PostForm
+    prepopulated_fields = {"slug": ("title",)}
 
     _fieldsets = [
         (None, {
