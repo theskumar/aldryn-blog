@@ -12,7 +12,7 @@ from django.contrib.auth.models import User
 from menus.utils import set_language_changer
 from aldryn_blog import request_post_identifier
 
-from aldryn_blog.models import Post
+from aldryn_blog.models import Post, UniTag
 
 
 class BasePostView(object):
@@ -78,6 +78,7 @@ class TaggedListView(BasePostView, ListView):
     def get_context_data(self, **kwargs):
         kwargs['tagged_entries'] = (self.kwargs.get('tag')
                                     if 'tag' in self.kwargs else None)
+        kwargs['tag'] = UniTag.objects.get(slug=self.kwargs.get('tag'))
         return super(TaggedListView, self).get_context_data(**kwargs)
 
 
