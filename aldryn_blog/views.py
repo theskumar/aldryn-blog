@@ -15,6 +15,8 @@ from aldryn_blog import request_post_identifier
 from aldryn_blog.models import Post, UniTag
 
 
+PAGINATE_BY = getattr(settings, 'ALDRYN_BLOG_PAGINATE_BY', 10)
+
 class BasePostView(object):
 
     def get_queryset(self):
@@ -34,6 +36,7 @@ class ArchiveView(BasePostView, ArchiveIndexView):
     date_field = 'publication_start'
     allow_empty = True
     allow_future = True
+    paginate_by = PAGINATE_BY
 
     def get_queryset(self):
         qs = BasePostView.get_queryset(self) 
