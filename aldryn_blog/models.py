@@ -134,6 +134,8 @@ class Post(models.Model):
 
     class Meta:
         ordering = ['-publication_start']
+        verbose_name = _('Post')
+        verbose_name_plural = _('Posts')
 
     def save(self, **kwargs):
         if not self.slug:
