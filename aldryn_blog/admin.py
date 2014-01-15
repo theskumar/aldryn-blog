@@ -9,10 +9,11 @@ from aldryn_blog.models import Post
 
 import cms
 from cms.admin.placeholderadmin import PlaceholderAdmin
+from cms.admin.placeholderadmin import FrontendEditableAdmin
 from distutils.version import LooseVersion
 
 
-class PostAdmin(PlaceholderAdmin):
+class PostAdmin(FrontendEditableAdmin, PlaceholderAdmin):
 
     render_placeholder_language_tabs = False
     list_display = ['title', 'author', 'publication_start', 'publication_end']
@@ -20,6 +21,7 @@ class PostAdmin(PlaceholderAdmin):
     raw_id_fields = ['author']
     form = PostForm
     prepopulated_fields = {"slug": ("title",)}
+    frontend_editable_fields = ('title', 'lead_in')
 
     _fieldsets = [
         (None, {
