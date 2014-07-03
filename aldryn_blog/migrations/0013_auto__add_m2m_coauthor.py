@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from django.utils import timezone
+import datetime
 from south.db import db
 from south.v2 import SchemaMigration
 from django.db import models
@@ -8,28 +8,28 @@ from django.db import models
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
-        # Adding field 'Post.publication_start'
-        db.add_column(u'aldryn_blog_post', 'publication_start',
-                      self.gf('django.db.models.fields.DateTimeField')(default=timezone.now),
-                      keep_default=False)
-
-        # Adding field 'Post.publication_end'
-        db.add_column(u'aldryn_blog_post', 'publication_end',
-                      self.gf('django.db.models.fields.DateTimeField')(null=True, blank=True),
-                      keep_default=False)
+        # Adding M2M table for field coauthors on 'Post'
+        m2m_table_name = db.shorten_name(u'aldryn_blog_post_coauthors')
+        db.create_table(m2m_table_name, (
+            ('id', models.AutoField(verbose_name='ID', primary_key=True, auto_created=True)),
+            ('post', models.ForeignKey(orm[u'aldryn_blog.post'], null=False)),
+            ('user', models.ForeignKey(orm[u'auth.user'], null=False))
+        ))
+        db.create_unique(m2m_table_name, ['post_id', 'user_id'])
 
 
     def backwards(self, orm):
-        # Deleting field 'Post.publication_start'
-        db.delete_column(u'aldryn_blog_post', 'publication_start')
-
-        # Deleting field 'Post.publication_end'
-        db.delete_column(u'aldryn_blog_post', 'publication_end')
+        # Removing M2M table for field coauthors on 'Post'
+        db.delete_table(db.shorten_name(u'aldryn_blog_post_coauthors'))
 
 
     models = {
+        u'aldryn_blog.authorsplugin': {
+            'Meta': {'object_name': 'AuthorsPlugin', '_ormbases': ['cms.CMSPlugin']},
+            u'cmsplugin_ptr': ('django.db.models.fields.related.OneToOneField', [], {'to': "orm['cms.CMSPlugin']", 'unique': 'True', 'primary_key': 'True'})
+        },
         u'aldryn_blog.latestentriesplugin': {
-            'Meta': {'object_name': 'LatestEntriesPlugin', 'db_table': "u'cmsplugin_latestentriesplugin'", '_ormbases': ['cms.CMSPlugin']},
+            'Meta': {'object_name': 'LatestEntriesPlugin', '_ormbases': ['cms.CMSPlugin']},
             u'cmsplugin_ptr': ('django.db.models.fields.related.OneToOneField', [], {'to': "orm['cms.CMSPlugin']", 'unique': 'True', 'primary_key': 'True'}),
             'latest_entries': ('django.db.models.fields.IntegerField', [], {'default': '5'}),
             'tags': ('django.db.models.fields.related.ManyToManyField', [], {'to': u"orm['taggit.Tag']", 'symmetrical': 'False', 'blank': 'True'})
@@ -37,12 +37,12 @@ class Migration(SchemaMigration):
         u'aldryn_blog.post': {
             'Meta': {'ordering': "['-publication_start']", 'object_name': 'Post'},
             'author': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['auth.User']"}),
-            'content': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['cms.Placeholder']", 'null': 'True'}),
+            'coauthors': ('django.db.models.fields.related.ManyToManyField', [], {'blank': 'True', 'related_name': "'aldryn_blog_coauthors'", 'null': 'True', 'symmetrical': 'False', 'to': u"orm['auth.User']"}),
+            'content': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'aldryn_blog_posts'", 'null': 'True', 'to': "orm['cms.Placeholder']"}),
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'key_visual': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['filer.Image']", 'null': 'True', 'blank': 'True'}),
             'language': ('django.db.models.fields.CharField', [], {'max_length': '5', 'null': 'True', 'blank': 'True'}),
             'lead_in': ('djangocms_text_ckeditor.fields.HTMLField', [], {}),
-            'publication_date': ('django.db.models.fields.DateField', [], {'default': 'datetime.date.today'}),
             'publication_end': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'}),
             'publication_start': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
             'slug': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '255', 'blank': 'True'}),

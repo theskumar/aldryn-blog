@@ -2,22 +2,28 @@
 import datetime
 from collections import Counter
 
-from django.contrib.auth.models import User
-from django.core.urlresolvers import reverse
+from django.core.exceptions import ImproperlyConfigured
+from django.core.urlresolvers import reverse, NoReverseMatch
 from django.db import models
+from django.db.models import Q
 from django.template.defaultfilters import slugify
 from django.utils import timezone
 from django.utils.translation import get_language, ugettext_lazy as _, override
 
+from cms.utils.i18n import get_current_language
 from cms.models.fields import PlaceholderField
 from cms.models.pluginmodel import CMSPlugin
 from djangocms_text_ckeditor.fields import HTMLField
 from filer.fields.image import FilerImageField
+from hvad.models import TranslationManager, TranslatableModel, TranslatedFields
 from taggit.managers import TaggableManager
 from taggit.models import GenericTaggedItemBase, Tag
 
 from .conf import settings
-from .fields import UsersWithPermsManyToManyField
+from .utils import generate_slugs, get_blog_authors, get_slug_for_user, get_slug_in_language
+
+
+AUTH_USER_MODEL = getattr(settings, 'AUTH_USER_MODEL', 'auth.User')
 
 from django.template.defaultfilters import slugify as default_slugify
 from unidecode import unidecode
@@ -40,6 +46,53 @@ class TaggedUnicodeItem(GenericTaggedItemBase):
     tag = models.ForeignKey('UniTag', related_name="%(app_label)s_%(class)s_items")
 
 
+class CategoryManager(TranslationManager):
+
+    def get_with_usage_count(self, language=None, **kwargs):
+        categories = list(self.language(language).filter(**kwargs).distinct())
+
+        # No annotate in hvad
+        for category in categories:
+            category.post_count = category.post_set.count()
+        return sorted(categories, key=lambda x: -x.post_count)
+
+
+class Category(TranslatableModel):
+
+    translations = TranslatedFields(
+        name=models.CharField(_('Name'), max_length=255),
+        slug=models.SlugField(_('Slug'), max_length=255, blank=True,
+                              help_text=_('Auto-generated. Clean it to have it re-created. '
+                                          'WARNING! Used in the URL. If changed, the URL will change. ')),
+        meta={'unique_together': [['slug', 'language_code']]}
+    )
+
+    ordering = models.IntegerField(_('Ordering'), default=0)
+
+    objects = CategoryManager()
+
+    class Meta:
+        verbose_name = _('Category')
+        verbose_name_plural = _('Categories')
+        ordering = ['ordering']
+
+    def __unicode__(self):
+        return self.lazy_translation_getter('name', str(self.pk))
+
+    def get_absolute_url(self, language=None):
+        language = language or get_current_language()
+        slug = get_slug_in_language(self, language)
+        with override(language):
+            if slug:
+                return reverse('aldryn_blog:category-posts', kwargs={'category': slug})
+
+            # category not translated in given language
+            try:
+                return reverse('aldryn_blog:latest-posts')
+            except (ImproperlyConfigured, NoReverseMatch):
+                return '/%s' % language
+
+
 class RelatedManager(models.Manager):
 
     def get_query_set(self):
@@ -48,16 +101,19 @@ class RelatedManager(models.Manager):
 
     def filter_by_language(self, language):
         qs = self.get_query_set()
-        return qs.filter(models.Q(language__isnull=True) | models.Q(language=language))
+        return qs.filter(Q(language__isnull=True) | Q(language=language))
 
     def filter_by_current_language(self):
         return self.filter_by_language(get_language())
 
-    def get_tags(self, language):
+    def get_tags(self, language=None):
         """Returns tags used to tag post and its count. Results are ordered by count."""
 
         # get tagged post
-        entries = self.filter_by_language(language).distinct()
+        entries = self
+        if language:
+            entries = entries.filter_by_language(language)
+        entries = entries.distinct()
         if not entries:
             return []
         kwargs = TaggedUnicodeItem.bulk_lookup_kwargs(entries)
@@ -74,6 +130,17 @@ class RelatedManager(models.Manager):
         for tag in tags:
             tag.count = counted_tags[tag.pk]
         return sorted(tags, key=lambda x: -x.count)
+
+    def get_categories(self, language=None):
+        """
+        Returns all categories used in posts and the amount, ordered by amount.
+        """
+
+        entries = (self.filter_by_language(language) if language else self).distinct()
+        if not entries:
+            return Category.objects.none()
+
+        return Category.objects.filter(post__in=entries).annotate(count=models.Count('post')).order_by('-count')
 
     def get_months(self, language):
         """Get months with aggregatet count (how much posts is in the month). Results are ordered by date."""
@@ -94,7 +161,7 @@ class PublishedManager(RelatedManager):
         qs = super(PublishedManager, self).get_query_set()
         now = timezone.now()
         qs = qs.filter(publication_start__lte=now)
-        qs = qs.filter(models.Q(publication_end__isnull=True) | models.Q(publication_end__gte=now))
+        qs = qs.filter(Q(publication_end__isnull=True) | Q(publication_end__gte=now))
         return qs
 
 
@@ -110,10 +177,13 @@ class Post(models.Model):
     lead_in = HTMLField(_('Lead-in'),
                         help_text=_('Will be displayed in lists, and at the start of the detail page (in bold)'))
     content = PlaceholderField('aldryn_blog_post_content', related_name='aldryn_blog_posts')
-    author = models.ForeignKey(User, verbose_name=_('Author'))
+    author = models.ForeignKey(to=AUTH_USER_MODEL, verbose_name=_('Author'))
+    coauthors = models.ManyToManyField(
+        to=AUTH_USER_MODEL, verbose_name=_('Co-Authors'), null=True, blank=True, related_name='aldryn_blog_coauthors')
     publication_start = models.DateTimeField(_('Published Since'), default=timezone.now,
                                              help_text=_('Used in the URL. If changed, the URL will change.'))
     publication_end = models.DateTimeField(_('Published Until'), null=True, blank=True)
+    category = models.ForeignKey(Category, verbose_name=_('Category'), null=True, blank=True)
 
     objects = RelatedManager()
     published = PublishedManager()
@@ -127,7 +197,7 @@ class Post(models.Model):
                   'month': self.publication_start.month,
                   'day': self.publication_start.day,
                   'slug': self.slug}
-        if self.language:
+        if self.language and not getattr(settings, 'ALDRYN_BLOG_SHOW_ALL_LANGUAGES', False):
             with override(self.language):
                 return reverse('aldryn_blog:post-detail', kwargs=kwargs)
         return reverse('aldryn_blog:post-detail', kwargs=kwargs)
@@ -142,6 +212,10 @@ class Post(models.Model):
             self.slug = slugify(self.title)
         return super(Post, self).save(**kwargs)
 
+    def get_author_slug(self):
+        # FIXME: This is a potential performance hogger
+        return get_slug_for_user(self.author)
+
 
 class LatestEntriesPlugin(CMSPlugin):
 
@@ -149,7 +223,10 @@ class LatestEntriesPlugin(CMSPlugin):
     tags = models.ManyToManyField('taggit.Tag', blank=True, help_text=_('Show only the blog posts tagged with chosen tags.'))
 
     def __unicode__(self):
-        return str(self.latest_entries)
+        """
+        must return a unicode string
+        """
+        return str(self.latest_entries).decode('utf8')
 
     def copy_relations(self, oldinstance):
         self.tags = oldinstance.tags.all()
@@ -162,26 +239,9 @@ class LatestEntriesPlugin(CMSPlugin):
         return posts[:self.latest_entries]
 
 
-class AuthorEntriesPlugin(CMSPlugin):
-
-    authors = UsersWithPermsManyToManyField(perms=['add_post'],
-                                            verbose_name=_('Authors'))
-    latest_entries = models.IntegerField(default=5, help_text=_('The number of author entries to be displayed.'))
-
-    def __unicode__(self):
-        return str(self.latest_entries)
-
-    def copy_relations(self, oldinstance):
-        self.authors = oldinstance.authors.all()
-
-    def get_posts(self):
-        posts = (Post.published.filter_by_language(self.language)
-                 .filter(author__in=self.authors.all()))
-        return posts[:self.latest_entries]
-
+class AuthorsPlugin(CMSPlugin):
     def get_authors(self):
-        authors = self.authors.all()
-        return authors
+        return generate_slugs(get_blog_authors())
 
 
 def force_language(sender, instance, **kwargs):

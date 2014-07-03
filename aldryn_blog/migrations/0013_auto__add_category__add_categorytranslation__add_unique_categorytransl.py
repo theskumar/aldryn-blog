@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from django.utils import timezone
+import datetime
 from south.db import db
 from south.v2 import SchemaMigration
 from django.db import models
@@ -8,28 +8,72 @@ from django.db import models
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
-        # Adding field 'Post.publication_start'
-        db.add_column(u'aldryn_blog_post', 'publication_start',
-                      self.gf('django.db.models.fields.DateTimeField')(default=timezone.now),
-                      keep_default=False)
+        # Adding model 'Category'
+        db.create_table(u'aldryn_blog_category', (
+            (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
+            ('ordering', self.gf('django.db.models.fields.IntegerField')(default=0)),
+        ))
+        db.send_create_signal(u'aldryn_blog', ['Category'])
 
-        # Adding field 'Post.publication_end'
-        db.add_column(u'aldryn_blog_post', 'publication_end',
-                      self.gf('django.db.models.fields.DateTimeField')(null=True, blank=True),
+        # Adding model 'CategoryTranslation'
+        db.create_table(u'aldryn_blog_category_translation', (
+            (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
+            ('name', self.gf('django.db.models.fields.CharField')(max_length=255)),
+            ('slug', self.gf('django.db.models.fields.SlugField')(max_length=255, blank=True)),
+            ('language_code', self.gf('django.db.models.fields.CharField')(max_length=15, db_index=True)),
+            ('master', self.gf('django.db.models.fields.related.ForeignKey')(related_name='translations', null=True, to=orm['aldryn_blog.Category'])),
+        ))
+        db.send_create_signal(u'aldryn_blog', ['CategoryTranslation'])
+
+        # Adding unique constraint on 'CategoryTranslation', fields ['slug', 'language_code']
+        db.create_unique(u'aldryn_blog_category_translation', ['slug', 'language_code'])
+
+        # Adding unique constraint on 'CategoryTranslation', fields ['language_code', 'master']
+        db.create_unique(u'aldryn_blog_category_translation', ['language_code', 'master_id'])
+
+        # Adding field 'Post.category'
+        db.add_column(u'aldryn_blog_post', 'category',
+                      self.gf('django.db.models.fields.related.ForeignKey')(to=orm['aldryn_blog.Category'], null=True, blank=True),
                       keep_default=False)
 
 
     def backwards(self, orm):
-        # Deleting field 'Post.publication_start'
-        db.delete_column(u'aldryn_blog_post', 'publication_start')
+        # Removing unique constraint on 'CategoryTranslation', fields ['language_code', 'master']
+        db.delete_unique(u'aldryn_blog_category_translation', ['language_code', 'master_id'])
 
-        # Deleting field 'Post.publication_end'
-        db.delete_column(u'aldryn_blog_post', 'publication_end')
+        # Removing unique constraint on 'CategoryTranslation', fields ['slug', 'language_code']
+        db.delete_unique(u'aldryn_blog_category_translation', ['slug', 'language_code'])
+
+        # Deleting model 'Category'
+        db.delete_table(u'aldryn_blog_category')
+
+        # Deleting model 'CategoryTranslation'
+        db.delete_table(u'aldryn_blog_category_translation')
+
+        # Deleting field 'Post.category'
+        db.delete_column(u'aldryn_blog_post', 'category_id')
 
 
     models = {
+        u'aldryn_blog.authorsplugin': {
+            'Meta': {'object_name': 'AuthorsPlugin', '_ormbases': ['cms.CMSPlugin']},
+            u'cmsplugin_ptr': ('django.db.models.fields.related.OneToOneField', [], {'to': "orm['cms.CMSPlugin']", 'unique': 'True', 'primary_key': 'True'})
+        },
+        u'aldryn_blog.category': {
+            'Meta': {'ordering': "['ordering']", 'object_name': 'Category'},
+            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'ordering': ('django.db.models.fields.IntegerField', [], {'default': '0'})
+        },
+        u'aldryn_blog.categorytranslation': {
+            'Meta': {'unique_together': "[['slug', 'language_code'], ('language_code', 'master')]", 'object_name': 'CategoryTranslation', 'db_table': "u'aldryn_blog_category_translation'"},
+            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'language_code': ('django.db.models.fields.CharField', [], {'max_length': '15', 'db_index': 'True'}),
+            'master': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'translations'", 'null': 'True', 'to': u"orm['aldryn_blog.Category']"}),
+            'name': ('django.db.models.fields.CharField', [], {'max_length': '255'}),
+            'slug': ('django.db.models.fields.SlugField', [], {'max_length': '255', 'blank': 'True'})
+        },
         u'aldryn_blog.latestentriesplugin': {
-            'Meta': {'object_name': 'LatestEntriesPlugin', 'db_table': "u'cmsplugin_latestentriesplugin'", '_ormbases': ['cms.CMSPlugin']},
+            'Meta': {'object_name': 'LatestEntriesPlugin', '_ormbases': ['cms.CMSPlugin']},
             u'cmsplugin_ptr': ('django.db.models.fields.related.OneToOneField', [], {'to': "orm['cms.CMSPlugin']", 'unique': 'True', 'primary_key': 'True'}),
             'latest_entries': ('django.db.models.fields.IntegerField', [], {'default': '5'}),
             'tags': ('django.db.models.fields.related.ManyToManyField', [], {'to': u"orm['taggit.Tag']", 'symmetrical': 'False', 'blank': 'True'})
@@ -37,12 +81,12 @@ class Migration(SchemaMigration):
         u'aldryn_blog.post': {
             'Meta': {'ordering': "['-publication_start']", 'object_name': 'Post'},
             'author': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['auth.User']"}),
-            'content': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['cms.Placeholder']", 'null': 'True'}),
+            'category': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['aldryn_blog.Category']", 'null': 'True', 'blank': 'True'}),
+            'content': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'aldryn_blog_posts'", 'null': 'True', 'to': "orm['cms.Placeholder']"}),
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'key_visual': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['filer.Image']", 'null': 'True', 'blank': 'True'}),
             'language': ('django.db.models.fields.CharField', [], {'max_length': '5', 'null': 'True', 'blank': 'True'}),
             'lead_in': ('djangocms_text_ckeditor.fields.HTMLField', [], {}),
-            'publication_date': ('django.db.models.fields.DateField', [], {'default': 'datetime.date.today'}),
             'publication_end': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'}),
             'publication_start': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
             'slug': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '255', 'blank': 'True'}),
