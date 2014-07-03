@@ -1,16 +1,16 @@
 # -*- coding: utf-8 -*-
 import copy
+from distutils.version import LooseVersion
 
 from django.conf import settings
 from django.contrib import admin
 
-from aldryn_blog.forms import PostForm
-from aldryn_blog.models import Post
-
 import cms
-from cms.admin.placeholderadmin import PlaceholderAdmin
-from cms.admin.placeholderadmin import FrontendEditableAdmin
-from distutils.version import LooseVersion
+from cms.admin.placeholderadmin import PlaceholderAdmin, FrontendEditableAdmin
+from hvad.admin import TranslatableAdmin
+
+from .forms import PostForm, CategoryForm
+from .models import Post, Category
 
 
 class PostAdmin(FrontendEditableAdmin, PlaceholderAdmin):
@@ -24,10 +24,10 @@ class PostAdmin(FrontendEditableAdmin, PlaceholderAdmin):
 
     _fieldsets = [
         (None, {
-            'fields': ['title', 'slug', 'publication_start', 'publication_end', 'author', 'language']
+            'fields': ['title', 'slug', 'publication_start', 'publication_end', 'author', 'coauthors', 'language']
         }),
         (None, {
-            'fields': ['key_visual', 'lead_in', 'tags']
+            'fields': ['key_visual', 'lead_in', 'category', 'tags']
         }),
         ('Content', {
             'classes': ['plugin-holder', 'plugin-holder-nopage'],
@@ -35,7 +35,8 @@ class PostAdmin(FrontendEditableAdmin, PlaceholderAdmin):
         }),
     ]
 
-    raw_id_fields = ['author'] if getattr(settings, 'ALDRYN_BLOG_USE_RAW_ID_FIELDS', False) else []
+    raw_id_fields = ['author', 'coauthors'] if getattr(settings, 'ALDRYN_BLOG_USE_RAW_ID_FIELDS', False) else []
+    filter_horizontal = ['coauthors']
 
     def get_fieldsets(self, request, obj=None):
         fieldsets = copy.deepcopy(self._fieldsets)
@@ -62,3 +63,18 @@ class PostAdmin(FrontendEditableAdmin, PlaceholderAdmin):
         return super(PostAdmin, self).add_view(request, *args, **kwargs)
 
 admin.site.register(Post, PostAdmin)
+
+
+class CategoryAdmin(TranslatableAdmin):
+
+    form = CategoryForm
+    list_display = ['__unicode__', 'all_translations', 'ordering']
+    list_editable = ['ordering']
+
+    def get_fieldsets(self, request, obj=None):
+        fieldsets = [
+            (None, {'fields': ['name', 'slug']}),
+        ]
+        return fieldsets
+
+admin.site.register(Category, CategoryAdmin)

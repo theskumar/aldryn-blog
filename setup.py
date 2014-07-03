@@ -12,6 +12,8 @@ REQUIREMENTS = [
     'south>=0.8',
     'unidecode',
     'aldryn_common',
+    'django-hvad',
+    'unidecode',
 ]
 
 CLASSIFIERS = [
