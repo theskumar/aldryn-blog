@@ -7,29 +7,31 @@ from django.utils.translation import get_language
 
 from hvad.utils import get_translation
 
-from .conf import settings
-
 
 def get_blog_languages():
     from .models import Post
-
-    langs = []
-    for post in Post.objects.all():
-        if not post.language:
-            # at least one post is available in all languages
-            return settings.languages
-        if post.language not in langs:
-            langs.append(post.language)
-    return langs
+    return Post.objects.exclude(language__isnull=True).order_by('language').values_list('language', flat=True).distinct()
 
 
-def get_blog_authors():
+def get_blog_authors(coauthors=True):
     now = timezone.now()
-    return User.objects.filter(
+
+    filters = (
         (Q(post__publication_end__isnull=True) | Q(post__publication_end__gte=now))
         & (Q(post__language=get_language()) | Q(post__language__isnull=True))
         & Q(post__publication_start__lte=now)
-    ).distinct()
+    )
+
+    if coauthors:
+        coauthors_filters = (
+            (Q(aldryn_blog_coauthors__publication_end__isnull=True) | Q(aldryn_blog_coauthors__publication_end__gte=now))
+            & (Q(aldryn_blog_coauthors__language=get_language()) | Q(aldryn_blog_coauthors__language__isnull=True))
+            & Q(aldryn_blog_coauthors__publication_start__lte=now)
+        )
+
+        filters = (filters | coauthors_filters)
+
+    return User.objects.filter(filters).distinct()
 
 
 def generate_slugs(users):
