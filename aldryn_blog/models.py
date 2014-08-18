@@ -7,7 +7,7 @@ from django.core.urlresolvers import reverse, NoReverseMatch
 from django.db import models
 from django.db.models import Q
 from django.template.defaultfilters import slugify
-from django.utils import timezone
+from django.utils import timezone, six
 from django.utils.translation import get_language, ugettext_lazy as _, override
 
 from cms.utils.i18n import get_current_language
@@ -36,7 +36,7 @@ class UniTag(Tag):
         proxy = True
 
     def slugify(self, tag, i=None):
-        slug = default_slugify(unidecode(tag))
+        slug = default_slugify(unidecode(six.text_type(tag)))
         if i is not None:
             slug += "_%d" % i
         return slug
