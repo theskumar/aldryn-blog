@@ -49,16 +49,6 @@ class TaggedUnicodeItem(GenericTaggedItemBase, ItemBase):
         verbose_name = _("UniTagged Item")
         verbose_name_plural = _("UniTagged Items")
 
-    @classmethod
-    def tags_for(cls, model, instance=None):
-        if instance is not None:
-            return cls.tag_model().objects.filter(**{
-                '%s__content_object' % cls.tag_relname(): instance
-            })
-        return cls.tag_model().objects.filter(**{
-            '%s__content_object__isnull' % cls.tag_relname(): False
-        }).distinct()
-
 
 class CategoryManager(TranslationManager):
 
