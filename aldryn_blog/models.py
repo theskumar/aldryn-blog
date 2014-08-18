@@ -17,7 +17,7 @@ from djangocms_text_ckeditor.fields import HTMLField
 from filer.fields.image import FilerImageField
 from hvad.models import TranslationManager, TranslatableModel, TranslatedFields
 from taggit.managers import TaggableManager
-from taggit.models import GenericTaggedItemBase, Tag
+from taggit.models import GenericTaggedItemBase, ItemBase, Tag
 
 from .conf import settings
 from .utils import generate_slugs, get_blog_authors, get_slug_for_user, get_slug_in_language
@@ -42,8 +42,22 @@ class UniTag(Tag):
         return slug
 
 
-class TaggedUnicodeItem(GenericTaggedItemBase):
-    tag = models.ForeignKey('UniTag', related_name="%(app_label)s_%(class)s_items")
+class TaggedUnicodeItem(GenericTaggedItemBase, ItemBase):
+    tag = models.ForeignKey(UniTag, related_name="%(app_label)s_%(class)s_items")
+
+    class Meta:
+        verbose_name = _("UniTagged Item")
+        verbose_name_plural = _("UniTagged Items")
+
+    @classmethod
+    def tags_for(cls, model, instance=None):
+        if instance is not None:
+            return cls.tag_model().objects.filter(**{
+                '%s__content_object' % cls.tag_relname(): instance
+            })
+        return cls.tag_model().objects.filter(**{
+            '%s__content_object__isnull' % cls.tag_relname(): False
+        }).distinct()
 
 
 class CategoryManager(TranslationManager):
