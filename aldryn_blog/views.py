@@ -119,6 +119,10 @@ class CategoryPostListView(BasePostView, ListView):
         qs = super(CategoryPostListView, self).get_queryset()
         return qs.filter(category=self.object)
 
+    def get_context_data(self, **kwargs):
+        kwargs['category'] = self.get_object()
+        return super(CategoryPostListView, self).get_context_data(**kwargs)
+
 
 class TagsListView(generic.ListView):
     template_name = 'aldryn_blog/tag_list.html'
