@@ -35,6 +35,10 @@ class UniTag(Tag):
     class Meta:
         proxy = True
 
+    def get_absolute_url(self):
+        from django.core.urlresolvers import reverse
+        return reverse('aldryn_blog:tagged-posts', kwargs={'tag': self.slug})
+
     def slugify(self, tag, i=None):
         slug = default_slugify(unidecode(six.text_type(tag)))
         if i is not None:
