@@ -26,5 +26,6 @@ class BlogApp(CMSApp):
     name = _('Blog')
     urls = APP_URLS
     menus = app_menus
+    app_name = 'aldryn_blog'
 
 apphook_pool.register(BlogApp)
