@@ -77,6 +77,11 @@ class AuthorsListView(generic.ListView):
         authors = generate_slugs(get_blog_authors())
         return authors
 
+    def render_to_response(self, context, **response_kwargs):
+        response_kwargs['current_app'] = resolve(self.request.path).namespace
+        return super(AuthorsListView, self).render_to_response(context, **response_kwargs)
+
+
 
 class AuthorEntriesView(BasePostView, ListView):
 
@@ -102,6 +107,11 @@ class CategoryListView(generic.ListView):
     def get_queryset(self):
         language = get_language_from_request(self.request, check_path=True)
         return Post.published.get_categories(language)
+
+    def render_to_response(self, context, **response_kwargs):
+        response_kwargs['current_app'] = resolve(self.request.path).namespace
+        return super(CategoryListView, self).render_to_response(context, **response_kwargs)
+
 
 
 class CategoryPostListView(BasePostView, ListView):
@@ -130,6 +140,11 @@ class TagsListView(generic.ListView):
     def get_queryset(self):
         language = get_language_from_request(self.request, check_path=True)
         return Post.published.get_tags(language)
+
+    def render_to_response(self, context, **response_kwargs):
+        response_kwargs['current_app'] = resolve(self.request.path).namespace
+        return super(TagsListView, self).render_to_response(context, **response_kwargs)
+
 
 
 class TaggedListView(BasePostView, ListView):
