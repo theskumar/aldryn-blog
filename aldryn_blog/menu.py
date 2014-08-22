@@ -20,7 +20,9 @@ class BlogTagsMenu(CMSAttachMenu):
         attributes = {'hidden': HIDE_TAGS_MENU}
         nodes.append(NavigationNode(
             _('Tags'),
-            reverse('aldryn_blog:tag-list'),
+            reverse(
+                'aldryn_blog:tag-list'
+            ),
             tag_menu_id,
             attr=attributes
         ))
@@ -32,7 +34,9 @@ class BlogTagsMenu(CMSAttachMenu):
             node = NavigationNode(
                 tag.name,
                 reverse(
-                    'aldryn_blog:tagged-posts', kwargs={'tag': tag.slug}),
+                    'aldryn_blog:tagged-posts',
+                    kwargs={'tag': tag.slug}
+                ),
                 tag.pk,
                 tag_menu_id,
                 attr=attributes
@@ -51,7 +55,9 @@ class BlogArchiveMenu(CMSAttachMenu):
         attributes = {'hidden': HIDE_ARCHIVE_MENU}
         nodes.append(NavigationNode(
             _('Archive'),
-            reverse('aldryn_blog:latest-posts'),
+            reverse(
+                'aldryn_blog:latest-posts'
+            ),
             archive_menu_id,
             attr=attributes
         ))
@@ -69,38 +75,64 @@ class BlogArchiveMenu(CMSAttachMenu):
 
             if not key_archive_year in archives:
                 nodes.append(NavigationNode(
-                    year, reverse('aldryn_blog:archive-year', kwargs={
-                        'year': year
-                    }),
-                    key_archive_year, archive_menu_id, attr=attributes))
+                    year,
+                    reverse(
+                        'aldryn_blog:archive-year',
+                        kwargs={
+                            'year': year
+                        }
+                    ),
+                    key_archive_year,
+                    archive_menu_id,
+                    attr=attributes)
+                )
                 archives.append(key_archive_year)
 
             if not key_archive_month in archives:
                 nodes.append(NavigationNode(
                     month_text,
-                    reverse('aldryn_blog:archive-month', kwargs={
-                        'year': year,
-                        'month': month
-                    }),
-                    key_archive_month, key_archive_year,
-                    attr=attributes))
+                    reverse(
+                        'aldryn_blog:archive-month',
+                        kwargs={
+                            'year': year,
+                            'month': month
+                        }
+                    ),
+                    key_archive_month,
+                    key_archive_year,
+                    attr=attributes)
+                )
                 archives.append(key_archive_month)
 
             if not key_archive_day in archives:
                 nodes.append(NavigationNode(
                     day,
-                    reverse('aldryn_blog:archive-day', kwargs={
-                        'year': year,
-                        'month': month,
-                        'day': day
-                    }),
-                    key_archive_day, key_archive_month,
-                    attr=attributes))
+                    reverse(
+                        'aldryn_blog:archive-day',
+                        kwargs={
+                            'year': year,
+                            'month': month,
+                            'day': day
+                        }
+                    ),
+                    key_archive_day,
+                    key_archive_month,
+                    attr=attributes)
+                )
                 archives.append(key_archive_day)
 
             nodes.append(NavigationNode(
                 post.title,
-                post.get_absolute_url(),
+                # post.get_absolute_url(),
+                reverse(
+                    'aldryn_blog:post-detail',
+                    kwargs={
+                        'year': year,
+                        'month': month,
+                        'day': day,
+                        'slug': post.slug
+                    }
+                ),
                 post.pk,
                 key_archive_day,
                 attr=attributes
@@ -117,7 +149,9 @@ class BlogCategoriesMenu(CMSAttachMenu):
         categories_menu_id = 'blog-categories'
         nodes.append(NavigationNode(
             _('Categories'),
-            reverse('aldryn_blog:category-list'),
+            reverse(
+                'aldryn_blog:category-list'
+            ),
             categories_menu_id,
             attr=attributes
         ))
@@ -132,9 +166,11 @@ class BlogCategoriesMenu(CMSAttachMenu):
             nodes.append(NavigationNode(
                 category_name,
                 reverse(
-                    'aldryn_blog:category-posts', kwargs={
+                    'aldryn_blog:category-posts',
+                    kwargs={
                         'category': category_slug,
-                    }),
+                    }
+                ),
                 category_key,
                 categories_menu_id,
                 attr=attributes
@@ -152,7 +188,9 @@ class BlogAuthorsMenu(CMSAttachMenu):
         authors_menu_id = 'blog-authors'
         nodes.append(NavigationNode(
             _('Authors'),
-            reverse('aldryn_blog:author-list'),
+            reverse(
+                'aldryn_blog:author-list'
+            ),
             authors_menu_id,
             attr=attributes
         ))
@@ -166,9 +204,11 @@ class BlogAuthorsMenu(CMSAttachMenu):
             nodes.append(NavigationNode(
                 author_name,
                 reverse(
-                    'aldryn_blog:author-posts', kwargs={
+                    'aldryn_blog:author-posts',
+                    kwargs={
                         'slug': author_slug,
-                    }),
+                    }
+                ),
                 author_key,
                 authors_menu_id,
                 attr=attributes
