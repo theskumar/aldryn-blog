@@ -19,6 +19,7 @@ class PostAdmin(FrontendEditableAdmin, PlaceholderAdmin):
     list_display = ['title', 'author', 'publication_start', 'publication_end']
     date_hierarchy = 'publication_start'
     form = PostForm
+    prepopulated_fields = {"slug": ("title",)}
     frontend_editable_fields = ('title', 'lead_in')
 
     _fieldsets = [
