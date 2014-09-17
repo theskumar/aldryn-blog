@@ -7,8 +7,9 @@ from django.core.urlresolvers import reverse, NoReverseMatch
 from django.db import models
 from django.db.models import Q
 from django.template.defaultfilters import slugify
-from django.utils import timezone
+from django.utils import timezone, six
 from django.utils.translation import get_language, ugettext_lazy as _, override
+from django.template.defaultfilters import slugify as default_slugify
 
 from app_data import AppDataField
 from cms.utils.i18n import get_current_language
@@ -18,13 +19,40 @@ from djangocms_text_ckeditor.fields import HTMLField
 from filer.fields.image import FilerImageField
 from hvad.models import TranslationManager, TranslatableModel, TranslatedFields
 from taggit.managers import TaggableManager
-from taggit.models import TaggedItem, Tag
+from taggit.models import GenericTaggedItemBase, ItemBase, Tag
+from unidecode import unidecode
 
 from .conf import settings
 from .utils import generate_slugs, get_blog_authors, get_slug_for_user, get_slug_in_language
 
-
 AUTH_USER_MODEL = getattr(settings, 'AUTH_USER_MODEL', 'auth.User')
+
+
+class UniTag(Tag):
+    """
+    Proxy model for taggit.Tag with slug unicode convert
+    """
+
+    class Meta:
+        proxy = True
+
+    def get_absolute_url(self):
+        from django.core.urlresolvers import reverse
+        return reverse('aldryn_blog:tagged-posts', kwargs={'tag': self.slug})
+
+    def slugify(self, tag, i=None):
+        slug = default_slugify(unidecode(six.text_type(tag)))
+        if i is not None:
+            slug += "_%d" % i
+        return slug
+
+
+class TaggedUnicodeItem(GenericTaggedItemBase, ItemBase):
+    tag = models.ForeignKey(UniTag, related_name="%(app_label)s_%(class)s_items")
+
+    class Meta:
+        verbose_name = _("UniTagged Item")
+        verbose_name_plural = _("UniTagged Items")
 
 
 class CategoryManager(TranslationManager):
@@ -87,8 +115,15 @@ class RelatedManager(models.Manager):
     def filter_by_current_language(self):
         return self.filter_by_language(get_language())
 
+<<<<<<< HEAD
     def get_tags(self, entries=None, language=None):
         """Returns tags used to tag post and its count. Results are ordered by count."""
+=======
+    def get_tags(self, language=None):
+        """
+        Returns tags used to tag post and its count. Results are ordered by count.
+        """
+>>>>>>> refs/remotes/vovanbo/develop
 
         if not entries:
             entries = self
@@ -98,17 +133,17 @@ class RelatedManager(models.Manager):
         entries = entries.distinct()
         if not entries:
             return []
-        kwargs = TaggedItem.bulk_lookup_kwargs(entries)
+        kwargs = TaggedUnicodeItem.bulk_lookup_kwargs(entries)
 
         # aggregate and sort
-        counted_tags = dict(TaggedItem.objects
-                                      .filter(**kwargs)
-                                      .values('tag')
-                                      .annotate(count=models.Count('tag'))
-                                      .values_list('tag', 'count'))
+        counted_tags = dict(TaggedUnicodeItem.objects
+                                             .filter(**kwargs)
+                                             .values('tag')
+                                             .annotate(count=models.Count('tag'))
+                                             .values_list('tag', 'count'))
 
         # and finally get the results
-        tags = Tag.objects.filter(pk__in=counted_tags.keys())
+        tags = UniTag.objects.filter(pk__in=counted_tags.keys())
         for tag in tags:
             tag.count = counted_tags[tag.pk]
         return sorted(tags, key=lambda x: -x.count)
@@ -117,15 +152,16 @@ class RelatedManager(models.Manager):
         """
         Returns all categories used in posts and the amount, ordered by amount.
         """
-
         entries = (self.filter_by_language(language) if language else self).distinct()
         if not entries:
             return Category.objects.none()
-
         return Category.objects.filter(post__in=entries).annotate(count=models.Count('post')).order_by('-count')
 
     def get_months(self, language):
-        """Get months with aggregatet count (how much posts is in the month). Results are ordered by date."""
+        """
+        Get months with aggregated count (how much posts is in the month). Results are ordered by date.
+        """
+
         # done via naive way as django's having tough time while aggregating on date fields
         entries = self.filter_by_language(language)
         dates = entries.values_list('publication_start', flat=True)
@@ -169,8 +205,9 @@ class Post(models.Model):
 
     objects = RelatedManager()
     published = PublishedManager()
-    tags = TaggableManager(blank=True)
     app_data = AppDataField()
+    tags = TaggableManager(blank=True, through=TaggedUnicodeItem)
+
 
     def __unicode__(self):
         return self.title
@@ -187,6 +224,8 @@ class Post(models.Model):
 
     class Meta:
         ordering = ['-publication_start']
+        verbose_name = _('Post')
+        verbose_name_plural = _('Posts')
 
     def save(self, **kwargs):
         if not self.slug:

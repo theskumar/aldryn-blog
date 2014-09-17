@@ -12,12 +12,15 @@ from django.views.generic.list import ListView
 from django.contrib.auth.models import User
 
 from menus.utils import set_language_changer
-from aldryn_common.paginator import DiggPaginator, paginate_by
 
+from aldryn_common.paginator import DiggPaginator, paginate_by
 from aldryn_blog import request_post_identifier
-from .models import Post, Category
+
+from .models import Post, UniTag, Category
 from .utils import generate_slugs, get_user_from_slug, get_blog_authors, get_slug_for_user
 
+
+# PAGINATE_BY = getattr(settings, 'ALDRYN_BLOG_PAGINATE_BY', 10)
 
 class BasePostView(object):
 
@@ -42,6 +45,7 @@ class ArchiveView(BasePostView, ArchiveIndexView):
     date_field = 'publication_start'
     allow_empty = True
     allow_future = True
+    # paginate_by = PAGINATE_BY
 
     def get_queryset(self):
         qs = BasePostView.get_queryset(self)
@@ -73,6 +77,11 @@ class AuthorsListView(generic.ListView):
         authors = generate_slugs(get_blog_authors())
         return authors
 
+    def render_to_response(self, context, **response_kwargs):
+        response_kwargs['current_app'] = resolve(self.request.path).namespace
+        return super(AuthorsListView, self).render_to_response(context, **response_kwargs)
+
+
 
 class AuthorEntriesView(BasePostView, ListView):
 
@@ -99,6 +108,11 @@ class CategoryListView(generic.ListView):
         language = get_language_from_request(self.request, check_path=True)
         return Post.published.get_categories(language)
 
+    def render_to_response(self, context, **response_kwargs):
+        response_kwargs['current_app'] = resolve(self.request.path).namespace
+        return super(CategoryListView, self).render_to_response(context, **response_kwargs)
+
+
 
 class CategoryPostListView(BasePostView, ListView):
 
@@ -115,6 +129,10 @@ class CategoryPostListView(BasePostView, ListView):
         qs = super(CategoryPostListView, self).get_queryset()
         return qs.filter(category=self.object)
 
+    def get_context_data(self, **kwargs):
+        kwargs['category'] = self.get_object()
+        return super(CategoryPostListView, self).get_context_data(**kwargs)
+
 
 class TagsListView(generic.ListView):
     template_name = 'aldryn_blog/tag_list.html'
@@ -122,6 +140,11 @@ class TagsListView(generic.ListView):
     def get_queryset(self):
         language = get_language_from_request(self.request, check_path=True)
         return Post.published.get_tags(language)
+
+    def render_to_response(self, context, **response_kwargs):
+        response_kwargs['current_app'] = resolve(self.request.path).namespace
+        return super(TagsListView, self).render_to_response(context, **response_kwargs)
+
 
 
 class TaggedListView(BasePostView, ListView):
@@ -133,6 +156,7 @@ class TaggedListView(BasePostView, ListView):
     def get_context_data(self, **kwargs):
         kwargs['tagged_entries'] = (self.kwargs.get('tag')
                                     if 'tag' in self.kwargs else None)
+        kwargs['tag'] = UniTag.objects.get(slug=self.kwargs.get('tag'))
         return super(TaggedListView, self).get_context_data(**kwargs)
 
 
