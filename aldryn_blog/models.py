@@ -115,16 +115,8 @@ class RelatedManager(models.Manager):
     def filter_by_current_language(self):
         return self.filter_by_language(get_language())
 
-<<<<<<< HEAD
     def get_tags(self, entries=None, language=None):
         """Returns tags used to tag post and its count. Results are ordered by count."""
-=======
-    def get_tags(self, language=None):
-        """
-        Returns tags used to tag post and its count. Results are ordered by count.
-        """
->>>>>>> refs/remotes/vovanbo/develop
-
         if not entries:
             entries = self
 
