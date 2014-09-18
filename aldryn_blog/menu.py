@@ -29,7 +29,8 @@ class BlogTagsMenu(CMSAttachMenu):
         posts = Post.published.filter_by_current_language()
         tags = TaggedUnicodeItem.objects.none()
         for post in posts:
-            tags = tags | TaggedUnicodeItem.tags_for(Post, post).order_by("name")
+            tags = tags | TaggedUnicodeItem.tags_for(
+                Post, post).order_by("name")
         for tag in tags:
             node = NavigationNode(
                 tag.name,
@@ -73,7 +74,7 @@ class BlogArchiveMenu(CMSAttachMenu):
             key_archive_month = 'month-%s-%s' % (year, month)
             key_archive_day = 'day-%s-%s-%s' % (year, month, day)
 
-            if not key_archive_year in archives:
+            if key_archive_year not in archives:
                 nodes.append(NavigationNode(
                     year,
                     reverse(
@@ -88,7 +89,7 @@ class BlogArchiveMenu(CMSAttachMenu):
                 )
                 archives.append(key_archive_year)
 
-            if not key_archive_month in archives:
+            if key_archive_month not in archives:
                 nodes.append(NavigationNode(
                     month_text,
                     reverse(
@@ -104,7 +105,7 @@ class BlogArchiveMenu(CMSAttachMenu):
                 )
                 archives.append(key_archive_month)
 
-            if not key_archive_day in archives:
+            if key_archive_day not in archives:
                 nodes.append(NavigationNode(
                     day,
                     reverse(
@@ -220,6 +221,7 @@ class BlogAuthorsMenu(CMSAttachMenu):
 # It's from Zinnia
 # https://github.com/Fantomas42/cmsplugin-zinnia/blob/develop/cmsplugin_zinnia/menu.py#L116
 class BlogEntryModifier(Modifier):
+
     """Menu Modifier for entries,
     hide the MenuEntry in navigation, not in breadcrumbs"""
 
@@ -237,6 +239,7 @@ menu_pool.register_menu(BlogArchiveMenu)
 menu_pool.register_menu(BlogCategoriesMenu)
 menu_pool.register_menu(BlogAuthorsMenu)
 menu_pool.register_modifier(BlogEntryModifier)
+
 
 def invalidate_menu_cache(sender, **kwargs):
     """

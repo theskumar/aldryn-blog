@@ -59,13 +59,17 @@ class ArchiveView(BasePostView, ArchiveIndexView):
 
     def get_context_data(self, **kwargs):
         page = self.request.GET.get('page', 1)
-        kwargs['day'] = int(self.kwargs.get('day')) if 'day' in self.kwargs else None
-        kwargs['month'] = int(self.kwargs.get('month')) if 'month' in self.kwargs else None
-        kwargs['year'] = int(self.kwargs.get('year')) if 'year' in self.kwargs else None
+        kwargs['day'] = int(
+            self.kwargs.get('day')) if 'day' in self.kwargs else None
+        kwargs['month'] = int(
+            self.kwargs.get('month')) if 'month' in self.kwargs else None
+        kwargs['year'] = int(
+            self.kwargs.get('year')) if 'year' in self.kwargs else None
         if kwargs['year']:
             kwargs['archive_date'] = datetime.date(
                 kwargs['year'], kwargs['month'] or 1, kwargs['day'] or 1)
-        kwargs['page'] = DiggPaginator(kwargs['object_list'], paginate_by(), body=6, padding=2).page(page)
+        kwargs['page'] = DiggPaginator(
+            kwargs['object_list'], paginate_by(), body=6, padding=2).page(page)
         kwargs['object_list'] = kwargs['page'].object_list
         return super(ArchiveView, self).get_context_data(**kwargs)
 
@@ -82,19 +86,20 @@ class AuthorsListView(generic.ListView):
         return super(AuthorsListView, self).render_to_response(context, **response_kwargs)
 
 
-
 class AuthorEntriesView(BasePostView, ListView):
 
     def get_queryset(self):
         qs = BasePostView.get_queryset(self)
         if 'slug' in self.kwargs:
-            qs = qs.filter(author__username=get_user_from_slug(self.kwargs['slug']))
+            qs = qs.filter(
+                author__username=get_user_from_slug(self.kwargs['slug']))
         return qs
 
     def get_context_data(self, **kwargs):
         if 'slug' in self.kwargs:
             try:
-                user = get_slug_for_user(User.objects.get(username=self.kwargs.get('slug')))
+                user = get_slug_for_user(
+                    User.objects.get(username=self.kwargs.get('slug')))
             except User.DoesNotExist:
                 user = None
             kwargs['author'] = user
@@ -111,7 +116,6 @@ class CategoryListView(generic.ListView):
     def render_to_response(self, context, **response_kwargs):
         response_kwargs['current_app'] = resolve(self.request.path).namespace
         return super(CategoryListView, self).render_to_response(context, **response_kwargs)
-
 
 
 class CategoryPostListView(BasePostView, ListView):
@@ -146,7 +150,6 @@ class TagsListView(generic.ListView):
         return super(TagsListView, self).render_to_response(context, **response_kwargs)
 
 
-
 class TaggedListView(BasePostView, ListView):
 
     def get_queryset(self):
@@ -169,6 +172,7 @@ def post_language_changer(language):
 
 
 class PostDetailView(BasePostView, DetailView):
+
     def get(self, request, *args, **kwargs):
         response = super(PostDetailView, self).get(request, *args, **kwargs)
         post = response.context_data.get('post', None)
@@ -179,5 +183,6 @@ class PostDetailView(BasePostView, DetailView):
         return response
 
     def get_context_data(self, **kwargs):
-        kwargs['placeholder_language'] = settings.ALDRYN_BLOG_PLUGIN_LANGUAGE or settings.LANGUAGES[0][0]
+        kwargs[
+            'placeholder_language'] = settings.ALDRYN_BLOG_PLUGIN_LANGUAGE or settings.LANGUAGES[0][0]
         return super(PostDetailView, self).get_context_data(**kwargs)

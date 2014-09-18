@@ -29,6 +29,7 @@ AUTH_USER_MODEL = getattr(settings, 'AUTH_USER_MODEL', 'auth.User')
 
 
 class UniTag(Tag):
+
     """
     Proxy model for taggit.Tag with slug unicode convert
     """
@@ -48,7 +49,8 @@ class UniTag(Tag):
 
 
 class TaggedUnicodeItem(GenericTaggedItemBase, ItemBase):
-    tag = models.ForeignKey(UniTag, related_name="%(app_label)s_%(class)s_items")
+    tag = models.ForeignKey(
+        UniTag, related_name="%(app_label)s_%(class)s_items")
 
     class Meta:
         verbose_name = _("UniTagged Item")
@@ -144,7 +146,8 @@ class RelatedManager(models.Manager):
         """
         Returns all categories used in posts and the amount, ordered by amount.
         """
-        entries = (self.filter_by_language(language) if language else self).distinct()
+        entries = (self.filter_by_language(
+            language) if language else self).distinct()
         if not entries:
             return Category.objects.none()
         return Category.objects.filter(post__in=entries).annotate(count=models.Count('post')).order_by('-count')
@@ -154,7 +157,8 @@ class RelatedManager(models.Manager):
         Get months with aggregated count (how much posts is in the month). Results are ordered by date.
         """
 
-        # done via naive way as django's having tough time while aggregating on date fields
+        # done via naive way as django's having tough time while aggregating on
+        # date fields
         entries = self.filter_by_language(language)
         dates = entries.values_list('publication_start', flat=True)
         dates = [(x.year, x.month) for x in dates]
@@ -171,7 +175,8 @@ class PublishedManager(RelatedManager):
         qs = super(PublishedManager, self).get_query_set()
         now = timezone.now()
         qs = qs.filter(publication_start__lte=now)
-        qs = qs.filter(Q(publication_end__isnull=True) | Q(publication_end__gte=now))
+        qs = qs.filter(
+            Q(publication_end__isnull=True) | Q(publication_end__gte=now))
         return qs
 
 
@@ -183,23 +188,26 @@ class Post(models.Model):
                                         'Clean it to have it re-created.'))
     language = models.CharField(_('language'), max_length=5, null=True, blank=True, choices=settings.LANGUAGES,
                                 help_text=_('leave empty to display in all languages'))
-    key_visual = FilerImageField(verbose_name=_('Key Visual'), blank=True, null=True)
+    key_visual = FilerImageField(
+        verbose_name=_('Key Visual'), blank=True, null=True)
     lead_in = HTMLField(_('Lead-in'),
                         help_text=_('Will be displayed in lists, and at the start of the detail page (in bold)'))
-    content = PlaceholderField('aldryn_blog_post_content', related_name='aldryn_blog_posts')
+    content = PlaceholderField(
+        'aldryn_blog_post_content', related_name='aldryn_blog_posts')
     author = models.ForeignKey(to=AUTH_USER_MODEL, verbose_name=_('Author'))
     coauthors = models.ManyToManyField(
         to=AUTH_USER_MODEL, verbose_name=_('Co-Authors'), null=True, blank=True, related_name='aldryn_blog_coauthors')
     publication_start = models.DateTimeField(_('Published Since'), default=timezone.now,
                                              help_text=_('Used in the URL. If changed, the URL will change.'))
-    publication_end = models.DateTimeField(_('Published Until'), null=True, blank=True)
-    category = models.ForeignKey(Category, verbose_name=_('Category'), null=True, blank=True)
+    publication_end = models.DateTimeField(
+        _('Published Until'), null=True, blank=True)
+    category = models.ForeignKey(
+        Category, verbose_name=_('Category'), null=True, blank=True)
 
     objects = RelatedManager()
     published = PublishedManager()
     app_data = AppDataField()
     tags = TaggableManager(blank=True, through=TaggedUnicodeItem)
-
 
     def __unicode__(self):
         return self.title
@@ -231,8 +239,10 @@ class Post(models.Model):
 
 class LatestEntriesPlugin(CMSPlugin):
 
-    latest_entries = models.IntegerField(default=5, help_text=_('The number of latests entries to be displayed.'))
-    tags = models.ManyToManyField('taggit.Tag', blank=True, help_text=_('Show only the blog posts tagged with chosen tags.'))
+    latest_entries = models.IntegerField(
+        default=5, help_text=_('The number of latests entries to be displayed.'))
+    tags = models.ManyToManyField('taggit.Tag', blank=True, help_text=_(
+        'Show only the blog posts tagged with chosen tags.'))
 
     def __unicode__(self):
         """
@@ -252,12 +262,13 @@ class LatestEntriesPlugin(CMSPlugin):
 
 
 class AuthorsPlugin(CMSPlugin):
+
     def get_authors(self):
         return generate_slugs(get_blog_authors())
 
 
 def force_language(sender, instance, **kwargs):
-    if issubclass(sender, CMSPlugin) and instance.placeholder and instance.placeholder.slot == 'aldryn_blog_post_content':
+    if issubclass(sender, CMSPlugin) and instance.placeholder and instance.placeholder.slot == 'aldryn_blog_post_content':  # noqa
         instance.language = settings.ALDRYN_BLOG_PLUGIN_LANGUAGE
 
 

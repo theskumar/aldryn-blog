@@ -6,7 +6,7 @@ from aldryn_blog.views import (
     TagsListView, AuthorsListView, CategoryListView, CategoryPostListView)
 from aldryn_blog.feeds import LatestEntriesFeed, TagFeed, CategoryFeed
 
-urlpatterns = patterns(
+urlpatterns = patterns(  # noqa
     '',
     url(r'^$', ArchiveView.as_view(), name='latest-posts'),
     url(r'^author/$', AuthorsListView.as_view(), name='author-list'),
@@ -15,7 +15,8 @@ urlpatterns = patterns(
     url(r'^(?P<year>\d{4})/$', ArchiveView.as_view(), name='archive-year'),
     url(r'^(?P<year>\d{4})/(?P<month>\d{1,2})/$', ArchiveView.as_view(), name='archive-month'),
     url(r'^(?P<year>\d{4})/(?P<month>\d{1,2})/(?P<day>\d{1,2})/$', ArchiveView.as_view(), name='archive-day'),
-    url(r'^(?P<year>\d{4})/(?P<month>\d{1,2})/(?P<day>\d{1,2})/(?P<slug>\w[-\w]*)/$', PostDetailView.as_view(), name='post-detail'),
+    url(r'^(?P<year>\d{4})/(?P<month>\d{1,2})/(?P<day>\d{1,2})/(?P<slug>\w[-\w]*)/$',
+        PostDetailView.as_view(), name='post-detail'),
     url(r'^category/$', CategoryListView.as_view(), name='category-list'),
     url(r'^category/(?P<category>[-\w]+)/$', CategoryPostListView.as_view(), name='category-posts'),
     url(r'^category/(?P<category>[-\w]+)/feed/$', CategoryFeed(), name='category-posts-feed'),

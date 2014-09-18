@@ -23,8 +23,9 @@ class PostTagWidget(django_select2.widgets.Select2Mixin, taggit.forms.TagWidget)
 
     def __init__(self, *args, **kwargs):
         options = kwargs.get('select2_options', {})
-        options['tags'] = list(taggit.models.Tag.objects.values_list('name', flat=True))
-        options['tokenSeparators'] = [',',]
+        options['tags'] = list(
+            taggit.models.Tag.objects.values_list('name', flat=True))
+        options['tokenSeparators'] = [',', ]
         kwargs['select2_options'] = options
         super(PostTagWidget, self).__init__(*args, **kwargs)
 
@@ -55,8 +56,10 @@ class AutoSlugForm(TranslatableModelForm):
 
         if not self.data.get(self.slug_field):
             slug = self.generate_slug()
-            # add to self.data in order to show generated slug in the form in case of an error
-            self.data[self.slug_field] = self.cleaned_data[self.slug_field] = slug
+            # add to self.data in order to show generated slug in the form in
+            # case of an error
+            self.data[self.slug_field] = self.cleaned_data[
+                self.slug_field] = slug
         else:
             if self._errors.get(self.slug_field):
                 return self.cleaned_data
@@ -81,7 +84,8 @@ class AutoSlugForm(TranslatableModelForm):
         except translations_model.DoesNotExist:
             language_code = get_language()
 
-        conflicts = translations_model.objects.filter(slug=slug, language_code=language_code)
+        conflicts = translations_model.objects.filter(
+            slug=slug, language_code=language_code)
         if self.is_edit_action():
             conflicts = conflicts.exclude(master=self.instance)
 
@@ -94,7 +98,8 @@ class AutoSlugForm(TranslatableModelForm):
         address = '<a href="%(url)s" target="_blank">%(label)s</a>' % {
             'url': conflict.master.get_absolute_url(),
             'label': ugettext('the conflicting object')}
-        error_message = ugettext('Conflicting slug. See %(address)s.') % {'address': address}
+        error_message = ugettext(
+            'Conflicting slug. See %(address)s.') % {'address': address}
         self.append_to_errors(field='slug', message=mark_safe(error_message))
 
     def append_to_errors(self, field, message):

@@ -10,21 +10,24 @@ from hvad.utils import get_translation
 
 def get_blog_languages():
     from .models import Post
-    return Post.objects.exclude(language__isnull=True).order_by('language').values_list('language', flat=True).distinct()
+    return Post.objects.exclude(
+        language__isnull=True).order_by('language').values_list('language', flat=True).distinct()
 
 
 def get_blog_authors(coauthors=True):
     now = timezone.now()
 
     filters = (
-        (Q(post__publication_end__isnull=True) | Q(post__publication_end__gte=now))
+        (Q(post__publication_end__isnull=True)
+         | Q(post__publication_end__gte=now))
         & (Q(post__language=get_language()) | Q(post__language__isnull=True))
         & Q(post__publication_start__lte=now)
     )
 
     if coauthors:
         coauthors_filters = (
-            (Q(aldryn_blog_coauthors__publication_end__isnull=True) | Q(aldryn_blog_coauthors__publication_end__gte=now))
+            (Q(aldryn_blog_coauthors__publication_end__isnull=True)
+             | Q(aldryn_blog_coauthors__publication_end__gte=now))
             & (Q(aldryn_blog_coauthors__language=get_language()) | Q(aldryn_blog_coauthors__language__isnull=True))
             & Q(aldryn_blog_coauthors__publication_start__lte=now)
         )
@@ -49,7 +52,7 @@ def generate_slugs(users):
         if not _slug:
             slug = user.get_username()
 
-        elif not _slug in slugs:
+        elif _slug not in slugs:
             slug = _slug
 
         else:
@@ -86,7 +89,8 @@ def get_slug_for_user(find_user):
 def get_slug_in_language(record, language):
     if not record:
         return None
-    if hasattr(record, record._meta.translations_cache) and language == record.language_code:  # possibly no need to hit db, try cache
+    # possibly no need to hit db, try cache
+    if hasattr(record, record._meta.translations_cache) and language == record.language_code:
         return record.lazy_translation_getter('slug')
     else:  # hit db
         try:
