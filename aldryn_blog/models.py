@@ -227,6 +227,20 @@ class Post(models.Model):
         verbose_name = _('Post')
         verbose_name_plural = _('Posts')
 
+    @property
+    def next_post(self):
+        try:
+            return Post.objects.filter(publication_start__gt=self.publication_start)[0]
+        except IndexError:
+            return None
+
+    @property
+    def prev_post(self):
+        try:
+            return Post.objects.filter(publication_start__lt=self.publication_start)[0]
+        except IndexError:
+            return None
+
     def save(self, **kwargs):
         if not self.slug:
             self.slug = slugify(self.title)
