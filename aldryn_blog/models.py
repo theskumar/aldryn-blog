@@ -230,7 +230,7 @@ class Post(models.Model):
     @property
     def next_post(self):
         try:
-            return Post.objects.filter(publication_start__gt=self.publication_start)[0]
+            return Post.objects.filter(publication_start__gt=self.publication_start).reverse()[0]
         except IndexError:
             return None
 
