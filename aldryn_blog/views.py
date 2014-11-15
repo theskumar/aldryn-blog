@@ -159,7 +159,10 @@ class TaggedListView(BasePostView, ListView):
     def get_context_data(self, **kwargs):
         kwargs['tagged_entries'] = (self.kwargs.get('tag')
                                     if 'tag' in self.kwargs else None)
-        kwargs['tag'] = UniTag.objects.get(slug=self.kwargs.get('tag'))
+        try:
+            kwargs['tag'] = UniTag.objects.get(slug=self.kwargs.get('tag'))
+        except UniTag.DoesNotExist:
+            kwargs['tag'] = None
         return super(TaggedListView, self).get_context_data(**kwargs)
 
 
