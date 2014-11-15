@@ -32,13 +32,13 @@ CLASSIFIERS = [
 
 setup(
     name='aldryn-blog',
-    version=__version__,
+    version='0.5.2',
     description='Adds blogging abilities to django CMS',
-    author='Divio AG',
-    author_email='info@divio.ch',
-    url='https://github.com/aldryn/aldryn-blog',
+    author='Saurabh Kumar',
+    author_email='me@saurabh-kumar',
+    url='https://github.com/theskumar/aldryn-blog',
     packages=find_packages(),
-    license='LICENSE.txt',
+    license='LICENSE',
     platforms=['OS Independent'],
     install_requires=REQUIREMENTS,
     classifiers=CLASSIFIERS,

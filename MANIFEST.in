@@ -1,4 +1,4 @@
-include LICENSE.txt
+include LICENSE
 recursive-include aldryn_blog/templates *
 recursive-include aldryn_blog/locale *
 recursive-include aldryn_blog/migrations *

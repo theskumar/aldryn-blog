@@ -2,6 +2,11 @@
 Aldryn Blog App
 ===============
 
+**Note:** This is a fork of original `Aldryn Blog`_ by `Divio AG`_
+
+.. _Aldryn Blog: https://github.com/aldryn/aldryn-blog
+.. _Divio AG: https://www.divio.ch
+
 Simple blogging application. It allows you to:
 
 - write a tagable post message
@@ -32,13 +37,13 @@ Database support:
 +---------------+----------------------------+-----------------+
 
 
-Run ``pip install aldryn-blog``.
+Run ``pip install https://github.com/theskumar/aldryn-blog/archive/v0.5.2.zip``.
 
 Add below apps to ``INSTALLED_APPS``: ::
 
     INSTALLED_APPS = [
         …
-        
+
         'aldryn_blog',
         'aldryn_common',
         'django_select2',
